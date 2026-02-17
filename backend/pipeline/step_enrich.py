@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 def _parse_research_sources(research_text: str) -> list[dict]:
     """Extract structured [{title, url}] sources from the '--- Sources ---' section."""
     sources: list[dict] = []
+    seen_urls: set[str] = set()
     marker = "--- Sources ---"
     idx = research_text.find(marker)
     if idx == -1:
@@ -23,7 +24,10 @@ def _parse_research_sources(research_text: str) -> list[dict]:
         # Format: "Title: https://..."
         match = re.match(r"^(.+?):\s*(https?://\S+)", line)
         if match:
-            sources.append({"title": match.group(1).strip(), "url": match.group(2).strip()})
+            url = match.group(2).strip()
+            if url not in seen_urls:
+                seen_urls.add(url)
+                sources.append({"title": match.group(1).strip(), "url": url})
     return sources
 
 

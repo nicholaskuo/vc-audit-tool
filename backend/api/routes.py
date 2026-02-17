@@ -205,6 +205,79 @@ def _try_dcf_model_csv(text: str) -> FinancialProjections | None:
     )
 
 
+def _try_sectioned_csv(text: str) -> FinancialProjections | None:
+    """Parse a sectioned CSV with 'Section' column separating Projections and Assumptions."""
+    try:
+        reader = csv.DictReader(io.StringIO(text))
+        fieldnames = [f.strip() for f in (reader.fieldnames or [])]
+        if 'Section' not in fieldnames:
+            return None
+
+        # Find revenue and margin columns (flexible naming)
+        rev_col = next((f for f in fieldnames if 'revenue' in f.lower()), None)
+        margin_col = next((f for f in fieldnames if 'ebitda' in f.lower() and 'margin' in f.lower()), None)
+        metric_col = next((f for f in fieldnames if f.lower() == 'metric'), None)
+        value_col = next((f for f in fieldnames if f.lower() == 'value'), None)
+
+        if not rev_col or not margin_col:
+            return None
+
+        # Detect unit multiplier from column header (e.g. "Revenue ($M)" -> 1e6)
+        rev_multiplier = 1.0
+        rev_lower = rev_col.lower()
+        if '($b)' in rev_lower or '(b)' in rev_lower:
+            rev_multiplier = 1e9
+        elif '($m)' in rev_lower or '(m)' in rev_lower or '($mm)' in rev_lower:
+            rev_multiplier = 1e6
+        elif '($k)' in rev_lower or '(k)' in rev_lower:
+            rev_multiplier = 1e3
+
+        revenues: list[float] = []
+        margins: list[float] = []
+        assumptions: dict[str, float] = {}
+
+        METRIC_MAP = {
+            'wacc': 'wacc',
+            'terminal growth': 'terminal_growth_rate',
+            'terminal growth rate': 'terminal_growth_rate',
+            'tax rate': 'tax_rate',
+            'capex % revenue': 'capex_percent',
+            'capex percent': 'capex_percent',
+            'nwc change % revenue': 'nwc_change_percent',
+            'nwc change percent': 'nwc_change_percent',
+            'd&a % revenue': 'depreciation_percent',
+            'depreciation % revenue': 'depreciation_percent',
+            'depreciation percent': 'depreciation_percent',
+        }
+
+        for row in reader:
+            section = (row.get('Section') or '').strip().lower()
+            if section == 'projections':
+                rev_str = (row.get(rev_col) or '').strip()
+                margin_str = (row.get(margin_col) or '').strip()
+                if rev_str:
+                    revenues.append(float(rev_str) * rev_multiplier)
+                    margins.append(float(margin_str) if margin_str else 0.2)
+            elif section == 'assumptions' and metric_col and value_col:
+                metric = (row.get(metric_col) or '').strip().lower()
+                val_str = (row.get(value_col) or '').strip()
+                if metric and val_str:
+                    param = METRIC_MAP.get(metric)
+                    if param:
+                        assumptions[param] = float(val_str)
+
+        if not revenues:
+            return None
+
+        return FinancialProjections(
+            revenue_projections=revenues,
+            ebitda_margins=margins,
+            **assumptions,
+        )
+    except (KeyError, ValueError):
+        return None
+
+
 class ReweightRequest(BaseModel):
     weights: dict[str, float]
 
@@ -339,6 +412,8 @@ async def upload_projections(file: UploadFile = File(...)):
         elif filename.endswith(".csv"):
             text = content.decode("utf-8")
             result = _try_simple_csv(text)
+            if result is None:
+                result = _try_sectioned_csv(text)
             if result is None:
                 result = _try_dcf_model_csv(text)
             if result is None:
