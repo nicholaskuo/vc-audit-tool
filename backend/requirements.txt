@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+pydantic
+sqlalchemy
+openai
+yfinance
+python-dotenv
+aiosqlite
+pytest
+pytest-asyncio
