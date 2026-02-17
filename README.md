@@ -1,7 +1,7 @@
 # VC Portfolio Valuation Engine
 
 Nicholas Kuo
-Modus Assignment: AI-assisted company valuations with deterministic math. Built with FastAPI, React, and OpenAI API.
+AI-assisted company valuations with deterministic math. Built with FastAPI, React, and OpenAI API.
 
 ## Problem & Approach
 
