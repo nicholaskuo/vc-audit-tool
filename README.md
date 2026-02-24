@@ -8,7 +8,7 @@ https://drive.google.com/file/d/1X4CwZLuojDHOIdtADankV1wJIEelU9cy/view?usp=shari
 
 ## Problem & Approach
 
-VC portfolio valuation requires combining multiple methodologies — comparable company analysis, DCF, and last-round adjustments — with subjective research that's traditionally manual and inconsistent. This engine automates the process with a core principle: **LLM at the edges, determinism in the core**. OpenAI handles research (web search for financials/comps), data enrichment, and narrative generation, while all valuation math runs as pure functions with no external dependencies. A 7-step pipeline (Validate → Research → Enrich → Fetch → Valuate → Narrate → Persist) processes each request, with graceful degradation at every step — if one valuation method fails, the remaining methods are blended automatically.
+VC portfolio valuation requires combining multiple methodologies — comparable company analysis, DCF, and last-round adjustments — with research that's traditionally manual and inconsistent. This engine automates the process with a core principle: **LLM at the edges, determinism in the core**. OpenAI handles research (web search for financials/comps), data enrichment, and narrative generation, while all valuation math runs as pure functions with no external dependencies. A 7-step pipeline (Validate → Research → Enrich → Fetch → Valuate → Narrate → Persist) processes each request, with graceful degradation at every step — if one valuation method fails, the remaining methods are blended automatically.
 
 ## Key Design Decisions
 
